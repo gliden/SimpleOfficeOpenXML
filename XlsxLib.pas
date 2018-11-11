@@ -50,8 +50,7 @@ var
   basePath: string;
 begin
   if TFile.Exists(filename) then TFile.Delete(filename);
-  basePath := ExtractFilePath(filename);
-  basePath := TPath.Combine(basePath, 'temp');
+  basePath := TPath.Combine(TPath.GetTempPath, TGuid.NewGuid.ToString);
   ForceDirectories(basePath);
   SaveToXml(basePath);
 
@@ -68,7 +67,7 @@ begin
   end;
   zipFile.Free;
 
-//  TDirectory.Delete(basePath, true);
+  TDirectory.Delete(basePath, true);
 end;
 
 procedure TXlsxFile.SaveToXml(basePath: String);
