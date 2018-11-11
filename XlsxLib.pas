@@ -3,7 +3,7 @@ unit XlsxLib;
 interface
 
 uses
-  DocProps, Workbook, System.Types;
+  DocProps, Workbook, System.Types, StylesFile;
 
 type
   TXlsxFile = class(TObject)
@@ -49,6 +49,7 @@ var
   s: string;
   basePath: string;
 begin
+  if TFile.Exists(filename) then TFile.Delete(filename);
   basePath := ExtractFilePath(filename);
   basePath := TPath.Combine(basePath, 'temp');
   ForceDirectories(basePath);
@@ -74,7 +75,13 @@ procedure TXlsxFile.SaveToXml(basePath: String);
 var
   contentType: TXlsxContentTypes;
   globalRels: TXlsxRels;
+  fStyles: TXlsxStylesFile;
 begin
+  fStyles := TXlsxStylesFile.Create;
+  fStyles.BuildFormatList(FWorkbook);
+  fStyles.SaveToXml(basePath);
+  fStyles.Free;
+
   contentType := TXlsxContentTypes.Create;
   contentType.SaveToXml(basePath);
   contentType.Free;

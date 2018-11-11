@@ -28,7 +28,7 @@ type
 implementation
 
 uses
-  JvSimpleXml, System.IOUtils, System.SysUtils;
+  JvSimpleXml, System.IOUtils, System.SysUtils, JclStreams;
 
 { TXlsxDocumentProperties }
 
@@ -49,7 +49,7 @@ begin
 
   childNode.Items.Add('Application', FApplicationName);
 
-  xmlExport.SaveToFile(filename);
+  xmlExport.SaveToFile(filename, TJclStringEncoding.seUTF8);
   xmlExport.Free;
 end;
 
@@ -72,7 +72,7 @@ begin
 //  childNode.Items.Add('dcterms:created', FCreatedAt);
 //  childNode.Items.Add('dcterms:modified', FModifiedBy);
 
-  xmlExport.SaveToFile(filename);
+  xmlExport.SaveToFile(filename, TJclStringEncoding.seUTF8);
   xmlExport.Free;
 end;
 

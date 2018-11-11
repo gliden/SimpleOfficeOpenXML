@@ -2,9 +2,15 @@ unit Helper;
 
 interface
 
+uses
+  JvSimpleXML, System.Classes, System.SysUtils;
+
 function ColNumberToReference(col: Integer): String;
 
 implementation
+
+uses
+  JclStreams;
 
 function ColNumberToReference(col: Integer): String;
 begin

@@ -12,7 +12,7 @@ type
 implementation
 
 uses
-  JvSimpleXml, System.SysUtils, System.IOUtils;
+  JvSimpleXml, System.SysUtils, System.IOUtils, JclStreams;
 
 { TXlsxRels }
 
@@ -46,7 +46,7 @@ begin
   relationshipNode.Properties.Add('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument');
   relationshipNode.Properties.Add('Target', 'xl/workbook.xml');
 
-  xmlExport.SaveToFile(filename);
+  xmlExport.SaveToFile(filename, TJclStringEncoding.seUTF8);
   xmlExport.Free;
 end;
 

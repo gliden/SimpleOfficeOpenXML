@@ -3,7 +3,7 @@ unit Cell;
 interface
 
 uses
-  JvSimpleXml;
+  JvSimpleXml, CellFormat;
 
 type
   TXlsxCellValueType = (vtString, vtNumber, vtBoolean);
@@ -35,15 +35,19 @@ type
     FRow: Integer;
     FValue: TXlsxCellValue;
     FFormula: String;
+    FFormat: TXlsxCellFormat;
     function getReference: String;
   public
     constructor Create(_row, _col: Integer);
+    destructor Destroy;override;
     procedure SaveToWorksheetXmlNode(node: TJvSimpleXMLElem);
 
     property Col: Integer read FCol write FCol;
     property Row: Integer read FRow write FRow;
     property Value: TXlsxCellValue read FValue write FValue;
     property Formula: String read FFormula write FFormula;
+
+    property Format: TXlsxCellFormat read FFormat;
   end;
 
 implementation
@@ -55,8 +59,16 @@ uses
 
 constructor TXlsxCell.Create(_row, _col: Integer);
 begin
+  FFormat := TXlsxCellFormat.Create;
+
   FCol := _col;
   FRow := _row;
+end;
+
+destructor TXlsxCell.Destroy;
+begin
+  Format.Free;
+  inherited;
 end;
 
 function TXlsxCell.getReference: String;
@@ -74,6 +86,8 @@ begin
 
   cellNode := rowNode.Items.Add('c');
   cellNode.Properties.Add('r', getReference);
+
+  cellNode.Properties.Add('s', FFormat.FormatId);
 
   if FFormula <> '' then
   begin

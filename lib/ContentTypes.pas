@@ -15,7 +15,7 @@ type
 implementation
 
 uses
-  System.IOUtils;
+  System.IOUtils, JclStreams;
 
 { TXlsxContentTypes }
 
@@ -30,6 +30,10 @@ begin
   xmlExport := TJvSimpleXML.Create(nil);
   typeNode := xmlExport.Root.Items.Add('Types');
   typeNode.Properties.Add('xmlns', 'http://schemas.openxmlformats.org/package/2006/content-types');
+
+  childNode := typeNode.Items.Add('Override');
+  childNode.Properties.Add('PartName', '/xl/styles.xml');
+  childNode.Properties.Add('ContentType', 'application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml');
 
   childNode := typeNode.Items.Add('Default');
   childNode.Properties.Add('Extension', 'rels');
@@ -55,7 +59,7 @@ begin
   childNode.Properties.Add('PartName', '/docProps/core.xml');
   childNode.Properties.Add('ContentType', 'application/vnd.openxmlformats-package.core-properties+xml');
 
-  xmlExport.SaveToFile(filename);
+  xmlExport.SaveToFile(filename, TJclStringEncoding.seUTF8);
   xmlExport.Free;
 end;
 

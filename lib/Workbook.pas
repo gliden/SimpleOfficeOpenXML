@@ -22,7 +22,7 @@ type
 implementation
 
 uses
-  JvSimpleXml, System.IOUtils, System.SysUtils;
+  JvSimpleXml, System.IOUtils, System.SysUtils, JclStreams, Helper;
 
 { TXlsxWorkbook }
 
@@ -63,6 +63,11 @@ begin
   relationshipsNode := xmlExport.Root.Items.Add('Relationships');
   relationshipsNode.Properties.Add('xmlns', 'http://schemas.openxmlformats.org/package/2006/relationships');
 
+  relationShipNode := relationshipsNode.items.Add('Relationship');
+  relationShipNode.Properties.Add('Id', Format('rId%d', [FSheets.Count+1]));
+  relationShipNode.Properties.Add('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles');
+  relationShipNode.Properties.Add('Target', 'styles.xml');
+
   for sheet in FSheets do
   begin
     relationShipNode := relationshipsNode.items.Add('Relationship');
@@ -71,7 +76,7 @@ begin
     relationShipNode.Properties.Add('Target', Format('worksheets/sheet%d.xml', [sheet.Id]));
   end;
 
-  xmlExport.SaveToFile(filename);
+  xmlExport.SaveToFile(filename, TJclStringEncoding.seUTF8);
   xmlExport.Free;
 end;
 
@@ -101,7 +106,7 @@ begin
     sheet.SaveToWorkbookXmlNode(sheetsNode);
   end;
 
-  xmlExport.SaveToFile(filename);
+  xmlExport.SaveToFile(filename, TJclStringEncoding.seUTF8);
   xmlExport.Free;
 
   InternalSaveRelations(basepath);

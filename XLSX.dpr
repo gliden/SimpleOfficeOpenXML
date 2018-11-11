@@ -11,7 +11,8 @@ uses
   Sheets in 'lib\Sheets.pas',
   Cell in 'lib\Cell.pas',
   Helper in 'lib\Helper.pas',
-  CellFormat in 'lib\CellFormat.pas';
+  CellFormat in 'lib\CellFormat.pas',
+  StylesFile in 'lib\StylesFile.pas';
 
 {$R *.res}
 

@@ -3,7 +3,7 @@ unit Sheets;
 interface
 
 uses
-  JvSimpleXml, Cell, System.Generics.Collections;
+  JvSimpleXml, Cell, System.Generics.Collections, CellFormat;
 
 type
   TXlsxSheet = class(TObject)
@@ -16,6 +16,7 @@ type
   public
     constructor Create;
     destructor Destroy;override;
+    procedure BuildFormatList(list: TXlsxDistinctFormatList);
 
     property Id: Integer read FId write FId;
     property Reference: String read GenerateReference;
@@ -29,9 +30,19 @@ type
 implementation
 
 uses
-  System.SysUtils, System.IOUtils;
+  System.SysUtils, System.IOUtils, JclStreams;
 
 { TXlsxSheet }
+
+procedure TXlsxSheet.BuildFormatList(list: TXlsxDistinctFormatList);
+var
+  tmpCell: TXlsxCell;
+begin
+  for tmpCell in FCells do
+  begin
+    tmpCell.Format.FormatId := list.AddIfNotExists(tmpCell.Format);
+  end;
+end;
 
 constructor TXlsxSheet.Create;
 begin
@@ -101,7 +112,7 @@ begin
     tmpCell.SaveToWorksheetXmlNode(sheetDataNode);
   end;
 
-  xmlExport.SaveToFile(filename);
+  xmlExport.SaveToFile(filename, TJclStringEncoding.seUTF8);
   xmlExport.Free;
 end;
 
