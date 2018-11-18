@@ -3,17 +3,19 @@ unit Workbook;
 interface
 
 uses
-  Sheets, System.Generics.Collections;
+  Sheets, System.Generics.Collections, CellFormat;
 
 type
   TXlsxWorkbook = class(TObject)
   private
     FSheets: TObjectList<TXlsxSheet>;
+    FDefaultFormat: TXlsxCellFormat;
     procedure InternalSaveRelations(basePath: String);
   public
     constructor Create;
     destructor Destroy;override;
 
+    property DefaultFormat: TXlsxCellFormat read FDefaultFormat;
     property Sheets: TObjectList<TXlsxSheet> read FSheets;
     procedure SaveToXml(basepath: String);
     procedure AddSheet(name: String);
@@ -30,7 +32,7 @@ procedure TXlsxWorkbook.AddSheet(name: String);
 var
   sheet: TXlsxSheet;
 begin
-  sheet := TXlsxSheet.Create;
+  sheet := TXlsxSheet.Create(FDefaultFormat);
   sheet.Name := name;
   sheet.Id := FSheets.Count + 1;
   FSheets.Add(sheet);
@@ -39,10 +41,12 @@ end;
 constructor TXlsxWorkbook.Create;
 begin
   FSheets := TObjectList<TXlsxSheet>.Create;
+  FDefaultFormat := TXlsxCellFormat.Create;
 end;
 
 destructor TXlsxWorkbook.Destroy;
 begin
+  FDefaultFormat.Free;
   FSheets.Free;
   inherited;
 end;

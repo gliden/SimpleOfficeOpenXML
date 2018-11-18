@@ -37,8 +37,9 @@ type
     FFormula: String;
     FFormat: TXlsxCellFormat;
     function getReference: String;
+    function GetRowNode(node: TJvSimpleXMLElem; row: Integer): TJvSimpleXMLElem;
   public
-    constructor Create(_row, _col: Integer);
+    constructor Create(_row, _col: Integer; cellFormat: TXlsxCellFormat);
     destructor Destroy;override;
     procedure SaveToWorksheetXmlNode(node: TJvSimpleXMLElem);
 
@@ -57,9 +58,10 @@ uses
 
 { TXlsxCell }
 
-constructor TXlsxCell.Create(_row, _col: Integer);
+constructor TXlsxCell.Create(_row, _col: Integer; cellFormat: TXlsxCellFormat);
 begin
   FFormat := TXlsxCellFormat.Create;
+  if cellFormat <> nil then FFormat.Assign(cellFormat);
 
   FCol := _col;
   FRow := _row;
@@ -69,6 +71,28 @@ destructor TXlsxCell.Destroy;
 begin
   Format.Free;
   inherited;
+end;
+
+function TXlsxCell.GetRowNode(node: TJvSimpleXMLElem; row: Integer): TJvSimpleXMLElem;
+var
+  i: Integer;
+  tmpNode: TJvSimpleXMLElem;
+begin
+  Result := nil;
+  for i := 0 to node.ItemCount-1 do
+  begin
+    tmpNode := node.Items[i];
+    if SameText(tmpNode.Name, 'row') and (tmpNode.Properties.IntValue('r') = row) then
+    begin
+      Result := tmpNode;
+      break;
+    end;
+  end;
+  if Result = nil then
+  begin
+    Result := node.Items.Add('row');
+    Result.Properties.Add('r', row);
+  end;
 end;
 
 function TXlsxCell.getReference: String;
@@ -81,8 +105,7 @@ var
   rowNode: TJvSimpleXMLElem;
   cellNode: TJvSimpleXMLElem;
 begin
-  rowNode := node.Items.Add('row');
-  rowNode.Properties.Add('r', Row);
+  rowNode := GetRowNode(node, row);
 
   cellNode := rowNode.Items.Add('c');
   cellNode.Properties.Add('r', getReference);
@@ -132,7 +155,17 @@ end;
 
 function TXlsxCellValue.AsString: String;
 begin
-  Result := FStringValue;
+  if IsNumber then
+  begin
+    Result := FloatToStr(FNumberValue);
+  end else
+  if IsBoolean then
+  begin
+    Result := BoolToStr(FBoolValue, true);
+  end else
+  begin
+    Result := FStringValue;
+  end;
 end;
 
 function TXlsxCellValue.AsXlsxBoolean: Integer;

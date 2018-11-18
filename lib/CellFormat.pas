@@ -31,6 +31,7 @@ type
     FStyle: TXlsxFontStyles;
   public
     constructor Create;
+    procedure Assign(value: TXlsxCellFont);
     function IsSame(font: TXlsxCellFont): Boolean;
 
     property Size: Integer read FSize write FSize;
@@ -54,6 +55,8 @@ type
   public
     constructor Create;
     destructor Destroy; override;
+    procedure Assign(value: TXlsxCelLFormat);
+
     function IsSame(format: TXlsxCellFormat): Boolean;
     procedure SaveToFontNode(node: TJvSimpleXMLElem);
     procedure SaveToBorderNode(node: TJvSimpleXMLElem);
@@ -80,6 +83,17 @@ const XlsxBorderStyleName: array[TXlsxBorderStyle] of String = ('none', 'mediumD
                                                                 'dashDot', 'medium', 'dashed', 'thick', 'thin', 'double');
 
 { TXlsxCellFormat }
+
+procedure TXlsxCellFormat.Assign(value: TXlsxCelLFormat);
+begin
+  FFont.Assign(value.Font);
+  FFormatId := value.FormatId;
+  FBottomBorder := value.BottomBorder;
+  FTopBorder := value.TopBorder;
+  FDiagonalBorder := value.DiagonalBorder;
+  FLeftBorder := value.LeftBorder;
+  FRightBorder := value.RightBorder;
+end;
 
 constructor TXlsxCellFormat.Create;
 begin
@@ -156,10 +170,7 @@ begin
   if xfsUnderline in Font.Style then fontNode.Items.Add('u');
 
   fontNode.Items.Add('sz').Properties.Add('val', Font.Size);
-  fontNode.Items.Add('color').Properties.Add('theme', Font.ColorTheme);
   fontNode.Items.Add('name').Properties.Add('val', Font.FontName);
-  fontNode.Items.Add('family').Properties.Add('val', Font.Family);
-  fontNode.Items.Add('scheme').Properties.Add('val', 'minor');
 end;
 
 { TXlsxDistinctFormatList }
@@ -190,6 +201,15 @@ begin
 end;
 
 { TXlsxCellFont }
+
+procedure TXlsxCellFont.Assign(value: TXlsxCellFont);
+begin
+  FColorTheme := value.ColorTheme;
+  FSize := value.Size;
+  FFontName := value.FontName;
+  FFamily := value.Family;
+  FStyle := value.Style;
+end;
 
 constructor TXlsxCellFont.Create;
 begin
