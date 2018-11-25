@@ -23,11 +23,12 @@ object XlsxDlg: TXlsxDlg
     OnClick = Button1Click
   end
   object Button2: TButton
-    Left = 16
+    Left = 8
     Top = 80
     Width = 75
     Height = 25
     Caption = 'Button2'
     TabOrder = 1
+    OnClick = Button2Click
   end
 end

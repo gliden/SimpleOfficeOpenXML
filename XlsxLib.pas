@@ -10,14 +10,15 @@ type
   private
     FDocumentProperties: TXlsxDocumentProperties;
     FWorkbook: TXlsxWorkbook;
+    procedure SaveToXml(basePath: String);
   public
     constructor Create;
     destructor Destroy;override;
 
     property DocumentProperties: TXlsxDocumentProperties read FDocumentProperties;
     property Workbook: TXlsxWorkbook read FWorkbook;
-    procedure SaveToXml(basePath: String);
     procedure SaveToFile(filename: String);
+    procedure LoadFromFile(filename: String);
   end;
 
 implementation
@@ -39,6 +40,20 @@ begin
   FDocumentProperties.Free;
   FWorkbook.Free;
   inherited;
+end;
+
+procedure TXlsxFile.LoadFromFile(filename: String);
+var
+  basePath: string;
+begin
+  basePath := TPath.Combine(TPath.GetTempPath, TGuid.NewGuid.ToString);
+  ForceDirectories(basePath);
+  TZipFile.ExtractZipFile(filename, basePath);
+
+  FWorkbook.LoadFromXml(basePath);
+
+
+  TDirectory.Delete(basePath, true);
 end;
 
 procedure TXlsxFile.SaveToFile(filename: String);

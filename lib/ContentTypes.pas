@@ -59,6 +59,10 @@ begin
   childNode.Properties.Add('PartName', '/docProps/core.xml');
   childNode.Properties.Add('ContentType', 'application/vnd.openxmlformats-package.core-properties+xml');
 
+  childNode := typeNode.Items.Add('Override');
+  childNode.Properties.Add('PartName', '/xl/sharedStrings.xml');
+  childNode.Properties.Add('ContentType', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml');
+
   xmlExport.SaveToFile(filename, TJclStringEncoding.seUTF8);
   xmlExport.Free;
 end;

@@ -3,7 +3,7 @@ unit Cell;
 interface
 
 uses
-  JvSimpleXml, CellFormat;
+  JvSimpleXml, CellFormat, SharedStrings;
 
 type
   TXlsxCellValueType = (vtString, vtNumber, vtBoolean);
@@ -36,10 +36,11 @@ type
     FValue: TXlsxCellValue;
     FFormula: String;
     FFormat: TXlsxCellFormat;
+    FSharedStrings: TXlsxSharedStrings;
     function getReference: String;
     function GetRowNode(node: TJvSimpleXMLElem; row: Integer): TJvSimpleXMLElem;
   public
-    constructor Create(_row, _col: Integer; cellFormat: TXlsxCellFormat);
+    constructor Create(_row, _col: Integer; cellFormat: TXlsxCellFormat; sharedStrings: TXlsxSharedStrings);
     destructor Destroy;override;
     procedure SaveToWorksheetXmlNode(node: TJvSimpleXMLElem);
 
@@ -58,10 +59,11 @@ uses
 
 { TXlsxCell }
 
-constructor TXlsxCell.Create(_row, _col: Integer; cellFormat: TXlsxCellFormat);
+constructor TXlsxCell.Create(_row, _col: Integer; cellFormat: TXlsxCellFormat; sharedStrings: TXlsxSharedStrings);
 begin
   FFormat := TXlsxCellFormat.Create;
   if cellFormat <> nil then FFormat.Assign(cellFormat);
+  FSharedStrings := sharedStrings;
 
   FCol := _col;
   FRow := _row;
@@ -104,6 +106,7 @@ procedure TXlsxCell.SaveToWorksheetXmlNode(node: TJvSimpleXMLElem);
 var
   rowNode: TJvSimpleXMLElem;
   cellNode: TJvSimpleXMLElem;
+  sharedStringId: Integer;
 begin
   rowNode := GetRowNode(node, row);
 
@@ -119,8 +122,9 @@ begin
   begin
     if value.IsString then
     begin
-      cellNode.Properties.Add('t', 'inlineStr');
-      cellNode.Items.Add('is').Items.Add('t', Value.AsString);
+      sharedStringId := FSharedStrings.AddString(value.AsString);
+      cellNode.Properties.Add('t', 's');
+      cellNode.Items.Add('v', sharedStringId);
     end else
     if value.IsNumber then
     begin

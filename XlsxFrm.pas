@@ -11,6 +11,7 @@ type
     Button1: TButton;
     Button2: TButton;
     procedure Button1Click(Sender: TObject);
+    procedure Button2Click(Sender: TObject);
   private
     { Private-Deklarationen }
   public
@@ -50,6 +51,15 @@ begin
 //  xlsxFile.Workbook.Sheets[0].Cell[3, 1].Formula := 'A1+B1';
 
   xlsxFile.SaveToFile('C:\temp\mappe\test.xlsx');
+  xlsxFile.Free;
+end;
+
+procedure TXlsxDlg.Button2Click(Sender: TObject);
+var
+  xlsxFile: TXlsxFile;
+begin
+  xlsxFile := TXlsxFile.Create;
+  xlsxFile.LoadFromFile('C:\temp\mappe\test.xlsx');
   xlsxFile.Free;
 end;
 

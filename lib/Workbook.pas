@@ -3,13 +3,14 @@ unit Workbook;
 interface
 
 uses
-  Sheets, System.Generics.Collections, CellFormat;
+  Sheets, System.Generics.Collections, CellFormat, SharedStrings;
 
 type
   TXlsxWorkbook = class(TObject)
   private
     FSheets: TObjectList<TXlsxSheet>;
     FDefaultFormat: TXlsxCellFormat;
+    FSharedStrings: TXlsxSharedStrings;
     procedure InternalSaveRelations(basePath: String);
   public
     constructor Create;
@@ -18,6 +19,7 @@ type
     property DefaultFormat: TXlsxCellFormat read FDefaultFormat;
     property Sheets: TObjectList<TXlsxSheet> read FSheets;
     procedure SaveToXml(basepath: String);
+    procedure LoadFromXml(basepath: String);
     procedure AddSheet(name: String);
   end;
 
@@ -32,7 +34,7 @@ procedure TXlsxWorkbook.AddSheet(name: String);
 var
   sheet: TXlsxSheet;
 begin
-  sheet := TXlsxSheet.Create(FDefaultFormat);
+  sheet := TXlsxSheet.Create(FDefaultFormat, FSharedStrings);
   sheet.Name := name;
   sheet.Id := FSheets.Count + 1;
   FSheets.Add(sheet);
@@ -42,12 +44,14 @@ constructor TXlsxWorkbook.Create;
 begin
   FSheets := TObjectList<TXlsxSheet>.Create;
   FDefaultFormat := TXlsxCellFormat.Create;
+  FSharedStrings := TXlsxSharedStrings.Create;
 end;
 
 destructor TXlsxWorkbook.Destroy;
 begin
   FDefaultFormat.Free;
   FSheets.Free;
+  FSharedStrings.Free;
   inherited;
 end;
 
@@ -72,6 +76,11 @@ begin
   relationShipNode.Properties.Add('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles');
   relationShipNode.Properties.Add('Target', 'styles.xml');
 
+  relationShipNode := relationshipsNode.items.Add('Relationship');
+  relationShipNode.Properties.Add('Id', Format('rId%d', [FSheets.Count+2]));
+  relationShipNode.Properties.Add('Type', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings');
+  relationShipNode.Properties.Add('Target', 'sharedStrings.xml');
+
   for sheet in FSheets do
   begin
     relationShipNode := relationshipsNode.items.Add('Relationship');
@@ -84,6 +93,40 @@ begin
   xmlExport.Free;
 end;
 
+procedure TXlsxWorkbook.LoadFromXml(basepath: String);
+var
+  xmlImport: TJvSimpleXML;
+  sheetsNode: TJvSimpleXMLElem;
+  sheet: TXlsxSheet;
+  filename: string;
+  i: Integer;
+  sheetNode: TJvSimpleXMLElem;
+begin
+  basePath := TPath.Combine(basepath, 'xl');
+  filename := TPath.Combine(basepath, 'workbook.xml');
+
+  FSharedStrings.LoadFromXml(basepath);
+
+  xmlImport := TJvSimpleXML.Create(nil);
+  xmlImport.LoadFromFile(filename);
+
+  sheetsNode := xmlImport.Root.Items.ItemNamed['sheets'];
+
+  for i := 0 to sheetsNode.Items.Count-1 do
+  begin
+    sheetNode := sheetsNode.Items[i];
+    if SameText(sheetNode.Name, 'sheet') then
+    begin
+      sheet := TXlsxSheet.Create(FDefaultFormat, FSharedStrings);
+      sheet.LoadFromWorkbookXmlNode(sheetNode);
+      sheet.LoadFromXml(TPath.Combine(basepath, 'worksheets'));
+      FSheets.Add(sheet);
+    end;
+  end;
+  
+  xmlImport.Free;
+end;
+
 procedure TXlsxWorkbook.SaveToXml(basepath: String);
 var
   xmlExport: TJvSimpleXML;
@@ -91,6 +134,7 @@ var
   sheetsNode: TJvSimpleXMLElem;
   sheet: TXlsxSheet;
   filename: string;
+  worksheetPath: string;
 begin
   basePath := TPath.Combine(basepath, 'xl');
   ForceDirectories(basePath);
@@ -115,12 +159,15 @@ begin
 
   InternalSaveRelations(basepath);
 
-  basePath := TPath.Combine(basepath, 'worksheets');
-  ForceDirectories(basePath);
+  worksheetPath := TPath.Combine(basepath, 'worksheets');
+  ForceDirectories(worksheetPath);
   for sheet in FSheets do
   begin
-    sheet.SaveToXml(basepath);
+    sheet.SaveToXml(worksheetPath);
   end;
+
+  FSharedStrings.SaveToXml(basepath);
 end;
 
 end.
+

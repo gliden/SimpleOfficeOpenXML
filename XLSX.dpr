@@ -12,7 +12,8 @@ uses
   Cell in 'lib\Cell.pas',
   Helper in 'lib\Helper.pas',
   CellFormat in 'lib\CellFormat.pas',
-  StylesFile in 'lib\StylesFile.pas';
+  StylesFile in 'lib\StylesFile.pas',
+  SharedStrings in 'lib\SharedStrings.pas';
 
 {$R *.res}
 

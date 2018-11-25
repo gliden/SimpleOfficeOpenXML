@@ -3,7 +3,7 @@ unit Sheets;
 interface
 
 uses
-  JvSimpleXml, Cell, System.Generics.Collections, CellFormat;
+  JvSimpleXml, Cell, System.Generics.Collections, CellFormat, SharedStrings;
 
 type
   TXlsxSheet = class(TObject)
@@ -12,10 +12,11 @@ type
     FId: Integer;
     FCells: TObjectList<TXlsxCell>;
     FDefaultFormat: TXlsxCellFormat;
+    FSharedStrings: TXlsxSharedStrings;
     function GenerateReference: String;
     function getCell(col, row: Integer): TXlsxCell;
   public
-    constructor Create(defaultFormat: TXlsxCellFormat);
+    constructor Create(defaultFormat: TXlsxCellFormat; sharedStrings: TXlsxSharedStrings);
     destructor Destroy;override;
     procedure BuildFormatList(list: TXlsxDistinctFormatList);
 
@@ -25,14 +26,16 @@ type
     property Cell[col, row: Integer]: TXlsxCell read getCell;
 
     procedure SaveToWorkbookXmlNode(node: TJvSimpleXMLElem);
+    procedure LoadFromWorkbookXmlNode(node: TJvSimpleXMLElem);
     procedure SaveToXml(basepath: String);
+    procedure LoadFromXml(basepath: String);
   end;
 
 implementation
 
 uses
   System.SysUtils, System.IOUtils, JclStreams, System.Generics.Defaults,
-  System.Math;
+  System.Math, Helper;
 
 { TXlsxSheet }
 
@@ -46,10 +49,11 @@ begin
   end;
 end;
 
-constructor TXlsxSheet.Create(defaultFormat: TXlsxCellFormat);
+constructor TXlsxSheet.Create(defaultFormat: TXlsxCellFormat; sharedStrings: TXlsxSharedStrings);
 begin
   FCells := TObjectList<TXlsxCell>.Create;
   FDefaultFormat := defaultFormat;
+  FSharedStrings := sharedStrings;
 end;
 
 destructor TXlsxSheet.Destroy;
@@ -79,9 +83,67 @@ begin
 
   if Result = nil then
   begin
-    Result := TXlsxCell.Create(row, col, FDefaultFormat);
+    Result := TXlsxCell.Create(row, col, FDefaultFormat, FSharedStrings);
     FCells.Add(Result);
   end;
+end;
+
+procedure TXlsxSheet.LoadFromWorkbookXmlNode(node: TJvSimpleXMLElem);
+begin
+  FName := node.Properties.ItemNamed['name'].Value;
+  FId := node.Properties.ItemNamed['sheetId'].IntValue;
+end;
+
+procedure TXlsxSheet.LoadFromXml(basepath: String);
+var
+  filename: string;
+  xmlImport: TJvSimpleXML;
+  sheetDataNode: TJvSimpleXMLElem;
+  i: Integer;
+  rowNode: TJvSimpleXMLElem;
+  cellNode: TJvSimpleXMLElem;
+  col: Integer;
+  x: Integer;
+  row: Integer;
+  typeProperty: TJvSimpleXMLProp;
+  formulaNode: TJvSimpleXMLElem;
+begin
+  filename := TPath.Combine(basepath, Format('sheet%d.xml', [FId]));
+
+  xmlImport := TJvSimpleXML.Create(nil);
+  xmlImport.LoadFromFile(filename);
+
+  sheetDataNode := xmlImport.Root.Items.ItemNamed['sheetData'];
+  for i := 0 to sheetDataNode.Items.Count-1 do
+  begin
+    rowNode := sheetDataNode.Items[i];
+    for x := 0 to rowNode.Items.Count-1 do
+    begin
+      cellNode := rowNode.Items[x];
+      col := ColReferenceToNumber(cellNode.Properties.ItemNamed['r'].Value);
+      row := rowNode.Properties.ItemNamed['r'].IntValue;
+      typeProperty := cellNode.Properties.ItemNamed['t'];
+      formulaNode := cellNode.Items.ItemNamed['f'];
+      
+      if (typeProperty <> nil) then
+      begin
+        if SameText(typeProperty.Value, 'inlineStr') then
+        begin
+          Cell[col, row].Value := cellNode.Items.ItemNamed['is'].Items.ItemNamed['t'].Value;
+        end else
+        if SameText(typeProperty.Value, 's') then
+        begin
+          Cell[col, row].Value := FSharedStrings.ValueById(cellNode.Items.ItemNamed['v'].IntValue);
+        end;
+      end else
+      if formulaNode <> nil then
+      begin
+        Cell[col, row].Formula := formulaNode.Value;
+      end;
+    end;
+  end;
+
+  xmlImport.Free;
 end;
 
 procedure TXlsxSheet.SaveToWorkbookXmlNode(node: TJvSimpleXMLElem);
