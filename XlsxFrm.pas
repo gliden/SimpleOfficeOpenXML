@@ -47,6 +47,10 @@ begin
   xlsxFile.Workbook.Sheets[0].Cell[2, 2].Format.BottomBorder := xbsThick;
   xlsxFile.Workbook.Sheets[0].Cell[2, 2].Format.DiagonalBorder := xbsDotted;
 
+  xlsxFile.Workbook.Sheets[0].Cell[1, 3].Value := 'TEXT';
+  xlsxFile.Workbook.Sheets[0].Cell[1, 3].Format.Fill.PatternType := xptSolid;
+  xlsxFile.Workbook.Sheets[0].Cell[1, 3].Format.Fill.Color := clBlue;
+
 //  xlsxFile.Workbook.Sheets[0].Cell[2, 1].Value := 2;
 //  xlsxFile.Workbook.Sheets[0].Cell[3, 1].Formula := 'A1+B1';
 

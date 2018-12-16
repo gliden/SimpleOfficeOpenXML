@@ -55,7 +55,7 @@ var
   styleSheetNode: TJvSimpleXMLElem;
   fontsNode: TJvSimpleXMLElem;
   fillsNode: TJvSimpleXMLElem;
-  fillNode: TJvSimpleXMLElem;
+//  fillNode: TJvSimpleXMLElem;
   bordersNode: TJvSimpleXMLElem;
   cellStyleXfsNodes: TJvSimpleXMLElem;
   XfNode: TJvSimpleXMLElem;
@@ -75,16 +75,22 @@ begin
   fontsNode := styleSheetNode.Items.Add('fonts');
   fontsNode.Properties.Add('count', FInternalFormatList.Count);
 
+  //Fills
+  fillsNode := styleSheetNode.Items.Add('fills');
+  fillsNode.Properties.Add('count', FInternalFormatList.Count);
+
   for format in FInternalFormatList do
   begin
     format.SaveToFontNode(fontsNode);
+    format.SaveToFillsNode(fillsNode);
   end;
 
   //Fills
-  fillsNode := styleSheetNode.Items.Add('fills');
-  fillsNode.Properties.Add('count', 1);
-  fillNode := fillsNode.Items.Add('fill');
-  fillNode.Items.Add('patternFill').Properties.Add('patternType', 'none');
+//  fillsNode := styleSheetNode.Items.Add('fills');
+//  fillsNode.Properties.Add('count', FInternalFormatList.Count);
+//  FInternalFormatList.
+//  fillNode := fillsNode.Items.Add('fill');
+//  fillNode.Items.Add('patternFill').Properties.Add('patternType', 'none');
 
 //  Borders
   bordersNode := styleSheetNode.Items.Add('borders');
@@ -111,7 +117,7 @@ begin
     XfNode := cellXfsNodes.Items.Add('xf');
     XfNode.Properties.Add('numFmtId', 0);
     XfNode.Properties.Add('fontId', format.FormatId);
-    XfNode.Properties.Add('fillId', 0);
+    XfNode.Properties.Add('fillId', format.FormatId);
     XfNode.Properties.Add('borderId', format.FormatId);
     XfNode.Properties.Add('xfId', 0);
     XfNode.Properties.Add('applyFont', 1);

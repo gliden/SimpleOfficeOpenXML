@@ -3,7 +3,7 @@ unit CellFormat;
 interface
 
 uses
-  System.Generics.Collections, JvSimpleXml;
+  System.Generics.Collections, JvSimpleXml, Vcl.Graphics;
 
 type
   TXlsxFontStyle = (xfsBold, xfsItalic, xfsUnderline);
@@ -11,6 +11,7 @@ type
 
 
   TXlsxBorderStyle = (xbsNone, xbsMediumDashDotDot, xbsHair, xbsSlantDashDot, xbsDotted, xbsMediumDashDot, xbsDashDotDot, xbsMediumDashed, xbsDashDot, xbsMedium, xbsDashed, xbsThick, xbsThin, xbsDouble);
+  TXlsxPatternType = (xptNone, xptGray125, xptSolid);
 
   TXlsxBorder = class(TObject)
   private
@@ -41,6 +42,20 @@ type
     property Style: TXlsxFontStyles read FStyle write FStyle;
   end;
 
+  TXlsxCellFill = class(TObject)
+  private
+    FPatternType: TXlsxPatternType;
+    FColor: TColor;
+    function ToRGB: String;
+  public
+    constructor Create;
+    procedure Assign(value: TXlsxCellFill);
+    function IsSame(value: TXlsxCellFill): Boolean;
+
+    property PatternType: TXlsxPatternType read FPatternType write FPatternType;
+    property Color: TColor read FColor write FColor;
+  end;
+
   TXlsxCellFormat = class(TObject)
   private
     FFont: TXlsxCellFont;
@@ -50,19 +65,22 @@ type
     FDiagonalBorder: TXlsxBorderStyle;
     FLeftBorder: TXlsxBorderStyle;
     FRightBorder: TXlsxBorderStyle;
+    FFill: TXlsxCellFill;
     function HasSameBorders(format: TXlsxCellFormat): Boolean;
     procedure SaveBorder(nodename: String; style: TXlsxBorderStyle; node: TJvSimpleXMLElem);
   public
     constructor Create;
     destructor Destroy; override;
-    procedure Assign(value: TXlsxCelLFormat);
+    procedure Assign(value: TXlsxCellFormat);
 
     function IsSame(format: TXlsxCellFormat): Boolean;
+    procedure SaveToFillsNode(node: TJvSimpleXMLElem);
     procedure SaveToFontNode(node: TJvSimpleXMLElem);
     procedure SaveToBorderNode(node: TJvSimpleXMLElem);
 
     property FormatId: Integer read FFormatId write FFormatId;
     property Font: TXlsxCellFont read FFont;
+    property Fill: TXlsxCellFill read FFill;
 
     property LeftBorder: TXlsxBorderStyle read FLeftBorder write FLeftBorder;
     property RightBorder: TXlsxBorderStyle read FRightBorder write FRightBorder;
@@ -78,15 +96,21 @@ type
 
 implementation
 
+uses
+  ColorRecHelper, System.SysUtils;
+
 const XlsxBorderStyleName: array[TXlsxBorderStyle] of String = ('none', 'mediumDashDotDot', 'hair', 'slantDashDot',
                                                                 'dotted', 'mediumDashDot', 'dashDotDot', 'mediumDashed',
                                                                 'dashDot', 'medium', 'dashed', 'thick', 'thin', 'double');
+
+const XlsxFillPatternTypeName: array[TXlsxPatternType] of String = ('none', 'gray125', 'solid');
 
 { TXlsxCellFormat }
 
 procedure TXlsxCellFormat.Assign(value: TXlsxCelLFormat);
 begin
   FFont.Assign(value.Font);
+  FFill.Assign(value.Fill);
   FFormatId := value.FormatId;
   FBottomBorder := value.BottomBorder;
   FTopBorder := value.TopBorder;
@@ -98,6 +122,7 @@ end;
 constructor TXlsxCellFormat.Create;
 begin
   FFont := TXlsxCellFont.Create;
+  FFill := TXlsxCellFill.Create;
 
   FBottomBorder := TXlsxBorderStyle.xbsNone;
   FTopBorder := TXlsxBorderStyle.xbsNone;
@@ -109,12 +134,14 @@ end;
 destructor TXlsxCellFormat.Destroy;
 begin
   FFont.Free;
+  FFill.Free;
   inherited;
 end;
 
 function TXlsxCellFormat.IsSame(format: TXlsxCellFormat): Boolean;
 begin
   Result := Font.IsSame(format.Font) and
+            Fill.IsSame(format.Fill) and
             (HasSameBorders(format));
 end;
 
@@ -157,6 +184,23 @@ begin
   begin
     borderNode.Properties.Add('diagonalUp', 1);
     borderNode.Properties.Add('diagonalDown', 1);
+  end;
+end;
+
+procedure TXlsxCellFormat.SaveToFillsNode(node: TJvSimpleXMLElem);
+var
+  fillNode: TJvSimpleXMLElem;
+  patternFillNode: TJvSimpleXMLElem;
+  fgColorNode: TJvSimpleXMLElem;
+begin
+  fillNode := node.Items.Add('fill');
+  patternFillNode := fillNode.Items.Add('patternFill');
+  patternFillNode.Properties.Add('patternType', XlsxFillPatternTypeName[Fill.PatternType]);
+
+  if fill.PatternType <> xptNone then
+  begin
+    fgColorNode := patternFillNode.Items.Add('fgColor');
+    fgColorNode.Properties.Add('rgb', Fill.ToRGB);
   end;
 end;
 
@@ -266,6 +310,34 @@ begin
   begin
     borderNode.Properties.Add('style', getBorderStyleToString)
   end;
+end;
+
+{ TXlsxCellFill }
+
+procedure TXlsxCellFill.Assign(value: TXlsxCellFill);
+begin
+  FPatternType := value.PatternType;
+  fColor := value.Color;
+end;
+
+constructor TXlsxCellFill.Create;
+begin
+  FPatternType := xptNone;
+  FColor := clNone;
+end;
+
+function TXlsxCellFill.IsSame(value: TXlsxCellFill): Boolean;
+begin
+  Result := (value.PatternType = self.PatternType) and
+            (value.Color = self.Color);
+end;
+
+function TXlsxCellFill.ToRGB: String;
+var
+  tmpColor: TColorRec;
+begin
+  tmpColor := FColor;
+  Result := tmpColor.GetDelphiHexWithoutDollar;
 end;
 
 end.

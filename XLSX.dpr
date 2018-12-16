@@ -13,7 +13,8 @@ uses
   Helper in 'lib\Helper.pas',
   CellFormat in 'lib\CellFormat.pas',
   StylesFile in 'lib\StylesFile.pas',
-  SharedStrings in 'lib\SharedStrings.pas';
+  SharedStrings in 'lib\SharedStrings.pas',
+  ColorRecHelper in 'externals\ColorRecHelper\ColorRecHelper.pas';
 
 {$R *.res}
 
