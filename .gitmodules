@@ -1,0 +1,3 @@
+[submodule "ColorRecHelper"]
+	path = ColorRecHelper
+	url = https://github.com/gliden/ColorRecHelper
