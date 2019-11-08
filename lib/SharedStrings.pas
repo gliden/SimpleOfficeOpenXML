@@ -76,6 +76,7 @@ var
   xmlImport: TJvSimpleXML;
   i: Integer;
   siNode: TJvSimpleXMLElem;
+  tNode : TJvSimpleXMLElem;
   sharedString: TXlsxString;
 begin
   xmlImport := TJvSimpleXML.Create(nil);
@@ -84,9 +85,10 @@ begin
   for i := 0 to xmlImport.Root.Items.Count-1 do
   begin
     siNode := xmlImport.Root.Items[i];
+    tNode := siNode.Items.ItemNamed['t'];
     sharedString := TXlsxString.Create;
     sharedString.FId := FStrings.Count;
-    sharedString.FValue := siNode.Items.ItemNamed['t'].Value;
+    if Assigned(tNode) then sharedString.FValue := tNode.Value;
     FStrings.Add(sharedString);
   end;
   xmlImport.Free;

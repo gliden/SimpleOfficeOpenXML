@@ -26,7 +26,7 @@ type
 implementation
 
 uses
-  JvSimpleXml, System.IOUtils, System.SysUtils, JclStreams, Helper;
+  JvSimpleXml, System.IOUtils, System.SysUtils, JclStreams, Helper, StylesFile;
 
 { TXlsxWorkbook }
 
@@ -101,17 +101,21 @@ var
   filename: string;
   i: Integer;
   sheetNode: TJvSimpleXMLElem;
+  fStyles: TXlsxStylesFile;
+
 begin
   basePath := TPath.Combine(basepath, 'xl');
   filename := TPath.Combine(basepath, 'workbook.xml');
 
   FSharedStrings.LoadFromXml(basepath);
 
+  fStyles := TXlsxStylesFile.Create;
+  fStyles.LoadFromXML(basepath);
+  fStyles.Free;
+
   xmlImport := TJvSimpleXML.Create(nil);
-  xmlImport.LoadFromFile(filename);
-
+  xmlImport.LoadFromFile(filename, TJclStringEncoding.seUTF8);
   sheetsNode := xmlImport.Root.Items.ItemNamed['sheets'];
-
   for i := 0 to sheetsNode.Items.Count-1 do
   begin
     sheetNode := sheetsNode.Items[i];
@@ -123,7 +127,7 @@ begin
       FSheets.Add(sheet);
     end;
   end;
-  
+
   xmlImport.Free;
 end;
 

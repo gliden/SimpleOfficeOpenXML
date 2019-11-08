@@ -20,6 +20,7 @@ type
   public
     constructor Create;
     procedure SaveToNode(nodeName: String; node: TJvSimpleXMLElem);
+    procedure SetPatternTypeByName(StyleName: String);
     property Style: TXlsxBorderStyle read FStyle write FStyle;
   end;
 
@@ -30,10 +31,12 @@ type
     FFontName: String;
     FFamily: Integer;
     FStyle: TXlsxFontStyles;
+    fIndexedColor : Integer;
   public
     constructor Create;
     procedure Assign(value: TXlsxCellFont);
     function IsSame(font: TXlsxCellFont): Boolean;
+    procedure SetIndexedColor(idx: Integer);
 
     property Size: Integer read FSize write FSize;
     property ColorTheme: Integer read FColorTheme write FColorTheme;
@@ -45,15 +48,33 @@ type
   TXlsxCellFill = class(TObject)
   private
     FPatternType: TXlsxPatternType;
-    FColor: TColor;
-    function ToRGB: String;
+    fFgColor: TColor;
+    fBgColor: TColor;
+    fIndexedFgColor : integer;
+    fIndexedBgColor : Integer;
+    fThemeFgColor : integer;
+    fThemeBgColor : Integer;
+    fTintFgColor : double;
+    fTintBgColor : double;
+    function fgToRGB: String;
+    function bgToRGB: String;
   public
     constructor Create;
     procedure Assign(value: TXlsxCellFill);
     function IsSame(value: TXlsxCellFill): Boolean;
+    procedure SetPatternTypeByName(PatternName: String);
+    procedure SetFgIndexedColor(idx: integer);
+    procedure SetBgIndexedColor(idx: integer);
+    function SetbgColorByRGB(rgb: String): String;
+    function SetfgColorByRGB(rgb: String): String;
 
     property PatternType: TXlsxPatternType read FPatternType write FPatternType;
-    property Color: TColor read FColor write FColor;
+    property fgColor: TColor read fFgColor write fFgColor;
+    property bgColor: TColor read fBgColor write fBgColor;
+    property ThemeFgColor : integer read fThemeFgColor write fThemeFgColor;
+    property ThemeBgColor : Integer read fThemeBgColor write fThemeBgColor;
+    property TintFgColor : double read fTintFgColor write fTintFgColor;
+    property TintBgColor : double read fTintBgColor write fTintBgColor;
   end;
 
   TXlsxCellFormat = class(TObject)
@@ -93,6 +114,10 @@ type
   public
     function AddIfNotExists(format: TXlsxCellFormat): Integer;
   end;
+
+  TFontList = class(TList<TXlsxCellFont>);
+  TBorderList = class(TList<TXlsxBorder>);
+  TFillList = class(TList<TXlsxCellFill>);
 
 implementation
 
@@ -192,6 +217,7 @@ var
   fillNode: TJvSimpleXMLElem;
   patternFillNode: TJvSimpleXMLElem;
   fgColorNode: TJvSimpleXMLElem;
+  bgColorNode: TJvSimpleXMLElem;
 begin
   fillNode := node.Items.Add('fill');
   patternFillNode := fillNode.Items.Add('patternFill');
@@ -200,7 +226,9 @@ begin
   if fill.PatternType <> xptNone then
   begin
     fgColorNode := patternFillNode.Items.Add('fgColor');
-    fgColorNode.Properties.Add('rgb', Fill.ToRGB);
+    fgColorNode.Properties.Add('rgb', Fill.fgToRGB);
+    bgColorNode := patternFillNode.Items.Add('bgColor');
+    bgColorNode.Properties.Add('rgb', Fill.bgToRGB);
   end;
 end;
 
@@ -262,6 +290,7 @@ begin
   FFontName := 'Calibri';
   FFamily := 2;
   FStyle := [];
+  fIndexedColor := -1;
 end;
 
 function TXlsxCellFont.IsSame(font: TXlsxCellFont): Boolean;
@@ -271,6 +300,11 @@ begin
             (FontName = font.FontName) and
             (Family = font.Family) and
             (Style = font.Style);
+end;
+
+procedure TXlsxCellFont.SetIndexedColor(idx: Integer);
+begin
+  fIndexedColor := idx;
 end;
 
 { TXlsxBorder }
@@ -312,31 +346,99 @@ begin
   end;
 end;
 
+procedure TXlsxBorder.SetPatternTypeByName(StyleName: String);
+begin
+  if StyleName.Equals('none') then fStyle := xbsNone;
+  if StyleName.Equals('mediumDashDotDot') then fStyle := xbsMediumDashDotDot;
+  if StyleName.Equals('hair') then fStyle := xbsHair;
+  if StyleName.Equals('slantDashDot') then fStyle := xbsSlantDashDot;
+  if StyleName.Equals('dotted') then fStyle := xbsDotted;
+  if StyleName.Equals('mediumDashDot') then fStyle := xbsMediumDashDot;
+  if StyleName.Equals('dashDotDot') then fStyle := xbsDashDotDot;
+  if StyleName.Equals('mediumDashed') then fStyle := xbsMediumDashed;
+  if StyleName.Equals('dashDot') then fStyle := xbsDashDot;
+  if StyleName.Equals('medium') then fStyle := xbsMedium;
+  if StyleName.Equals('dashed') then fStyle := xbsDashed;
+  if StyleName.Equals('thick') then fStyle := xbsThick;
+  if StyleName.Equals('thin') then fStyle := xbsThin;
+  if StyleName.Equals('double') then fStyle := xbsDouble;
+end;
+
 { TXlsxCellFill }
 
 procedure TXlsxCellFill.Assign(value: TXlsxCellFill);
 begin
   FPatternType := value.PatternType;
-  fColor := value.Color;
+  fFgColor := value.fgColor;
+  fBgColor := value.bgColor;
+end;
+
+function TXlsxCellFill.bgToRGB: String;
+var
+  tmpColor: TColorRec;
+begin
+  tmpColor := bgColor;
+  Result := tmpColor.GetDelphiHexWithoutDollar;
+end;
+
+function TXlsxCellFill.SetbgColorByRGB(rgb: String): String;
+var
+  tmpColor: TColorRec;
+begin
+  tmpColor.SetDelphiHexWithoutDollarInput(rgb);
+  fBgColor := tmpColor;
+end;
+
+function TXlsxCellFill.SetfgColorByRGB(rgb: String): String;
+var
+  tmpColor: TColorRec;
+begin
+  tmpColor.SetDelphiHexWithoutDollarInput(rgb);
+  fFgColor := tmpColor;
 end;
 
 constructor TXlsxCellFill.Create;
 begin
   FPatternType := xptNone;
-  FColor := clNone;
+  fFgColor := clNone;
+  fBgColor := clNone;
+  fIndexedFgColor := -1;
+  fIndexedBgColor := -1;
+  fThemeFgColor := 0;
+  fThemeBgColor := 0;
+  fTintFgColor  := 1;
+  fTintBgColor  := 1;
 end;
 
 function TXlsxCellFill.IsSame(value: TXlsxCellFill): Boolean;
 begin
   Result := (value.PatternType = self.PatternType) and
-            (value.Color = self.Color);
+            (value.fgColor = self.fgColor) and
+            (value.bgColor = self.bgColor);
 end;
 
-function TXlsxCellFill.ToRGB: String;
+procedure TXlsxCellFill.SetBgIndexedColor(idx: integer);
+begin
+  fIndexedBgColor := idx;
+end;
+
+procedure TXlsxCellFill.SetFgIndexedColor(idx: integer);
+begin
+  fIndexedFgColor := idx;
+end;
+
+procedure TXlsxCellFill.SetPatternTypeByName(PatternName: String);
+begin
+  if PatternName.Equals('none') then FPatternType := xptNone;
+  if PatternName.Equals('gray125') then FPatternType := xptGray125;
+  if PatternName.Equals('solid') then FPatternType := xptSolid;
+end;
+
+function TXlsxCellFill.fgToRGB: String;
 var
   tmpColor: TColorRec;
 begin
-  tmpColor := FColor;
+  tmpColor := fgColor;
   Result := tmpColor.GetDelphiHexWithoutDollar;
 end;
 

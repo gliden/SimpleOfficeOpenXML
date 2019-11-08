@@ -15,6 +15,7 @@ type
 
     procedure BuildFormatList(workbook: TXlsxWorkbook);
     procedure SaveToXml(basepath: String);
+    procedure LoadFromXML(basepath: String);
   end;
 
 implementation
@@ -48,6 +49,169 @@ begin
   inherited;
 end;
 
+procedure TXlsxStylesFile.LoadFromXML(basepath: String);
+var
+  fFontList : TFontList;
+  fBorderList : TBorderList;
+  fFillList : TFillList;
+  fFont : TXlsxCellFont;
+  fBorder : TXlsxBorder;
+  fFill : TXlsxCellFill;
+  xmlImport: TJvSimpleXML;
+  fontsNode : TJvSimpleXMLElem;
+  bordersNode : TJvSimpleXMLElem;
+  fillsNode : TJvSimpleXMLElem;
+  i         : integer;
+  filename : String;
+
+  procedure AddFont(fontNode: TJvSimpleXMLElem);
+  var
+    indexValue : Integer;
+  begin
+    fFont := TXlsxCellFont.Create;
+    fFontList.Add(fFont);
+    if assigned(fontNode.Items.ItemNamed['sz']) then
+    begin
+      fFont.Size := fontNode.Items.ItemNamed['sz'].Properties.itemNamed['val'].intValue;
+    end;
+    if assigned(fontNode.Items.ItemNamed['name']) then
+    begin
+      fFont.FontName := fontNode.Items.ItemNamed['name'].Properties.ItemNamed['val'].Value;
+    end;
+    if assigned(fontNode.Items.ItemNamed['color']) then
+    begin
+      if Assigned(fontNode.Items.ItemNamed['color'].Properties.ItemNamed['theme']) then
+      begin
+        fFont.ColorTheme := fontNode.Items.ItemNamed['color'].Properties.ItemNamed['theme'].intValue;
+      end
+      else if Assigned(fontNode.Items.ItemNamed['color'].Properties.ItemNamed['indexed']) then
+      begin
+        indexValue := fontNode.Items.ItemNamed['color'].Properties.ItemNamed['indexed'].intValue;
+        fFont.SetIndexedColor(indexValue);
+      end;
+    end;
+    if assigned(fontNode.Items.ItemNamed['family']) then
+    begin
+      fFont.Family := fontNode.Items.ItemNamed['family'].Properties.ItemNamed['val'].intValue;
+    end;
+    if assigned(fontNode.items.ItemNamed['b']) then fFont.Style := fFont.Style + [xfsBold];
+    if assigned(fontNode.items.ItemNamed['i']) then fFont.Style := fFont.Style + [xfsItalic];
+    if assigned(fontNode.items.ItemNamed['u']) then fFont.Style := fFont.Style + [xfsUnderline];
+  end;
+
+  procedure AddBorder(boderNode: TJvSimpleXMLElem);
+  begin
+    fBorder := TXlsxBorder.Create;
+    fBorderList.Add(fBorder);
+    // ist noch nocht richtig implementiert
+  end;
+
+  procedure AddFill(fillNode : TJvSimpleXMLElem);
+  var
+    rgbValue : String;
+    indexValue : Integer;
+    doubleValue : double;
+    patternNode : TJvSimpleXMLElem;
+    hStr        : String;
+  begin
+    fFill := TXlsxCellFill.Create;
+    fFillList.Add(fFill);
+    patternNode := fillNode.Items.ItemNamed['patternFill'];
+    if assigned(patternNode) then
+    begin
+      fFill.SetPatternTypeByName(patternNode.Properties.ItemNamed['patternType'].Value);
+
+      if assigned(patternNode.Items.ItemNamed['fgColor']) then
+      begin
+        if assigned(patternNode.Items.ItemNamed['fgColor'].Properties.ItemNamed['rgb']) then
+        begin
+          rgbValue := patternNode.Items.ItemNamed['fgColor'].Properties.ItemNamed['rgb'].Value;
+          fFill.SetfgColorByRGB(rgbValue);
+        end
+        else if assigned(patternNode.Items.ItemNamed['fgColor'].Properties.ItemNamed['indexed']) then
+        begin
+          indexValue := patternNode.Items.ItemNamed['fgColor'].Properties.ItemNamed['indexed'].IntValue;
+          fFill.SetFgIndexedColor(indexValue);
+        end;
+        if assigned(patternNode.Items.ItemNamed['fgColor'].Properties.ItemNamed['theme']) then
+        begin
+          fFill.ThemeFgColor := patternNode.Items.ItemNamed['fgColor'].Properties.ItemNamed['theme'].IntValue;
+        end;
+        if assigned(patternNode.Items.ItemNamed['fgColor'].Properties.ItemNamed['tint']) then
+        begin
+          hStr := patternNode.Items.ItemNamed['fgColor'].Properties.ItemNamed['tint'].Value;
+          hStr := StringReplace(hStr, '.', ',', []);
+          if TryStrToFloat(hStr, doubleValue) then fFill.TintFgColor := doubleValue;
+        end;
+      end;
+      if assigned(patternNode.Items.ItemNamed['bgColor']) then
+      begin
+        if assigned(patternNode.Items.ItemNamed['bgColor'].Properties.ItemNamed['rgb']) then
+        begin
+          rgbValue := patternNode.Items.ItemNamed['bgColor'].Properties.ItemNamed['rgb'].Value;
+          fFill.SetbgColorByRGB(rgbValue);
+        end
+        else if assigned(patternNode.Items.ItemNamed['bgColor'].Properties.ItemNamed['indexed']) then
+        begin
+          indexValue := patternNode.Items.ItemNamed['bgColor'].Properties.ItemNamed['indexed'].IntValue;
+          fFill.SetBgIndexedColor(indexValue);
+        end;
+        if assigned(patternNode.Items.ItemNamed['bgColor'].Properties.ItemNamed['theme']) then
+        begin
+          fFill.ThemeBgColor := patternNode.Items.ItemNamed['bgColor'].Properties.ItemNamed['theme'].IntValue;
+        end;
+        if assigned(patternNode.Items.ItemNamed['bgColor'].Properties.ItemNamed['tint']) then
+        begin
+          hStr := patternNode.Items.ItemNamed['bgColor'].Properties.ItemNamed['tint'].Value;
+          hStr := StringReplace(hStr, '.', ',', []);
+          if TryStrToFloat(hStr, doubleValue) then fFill.TintBgColor := doubleValue;
+        end;
+      end;
+    end;
+  end;
+
+begin
+  FInternalFormatList.Clear;
+
+  fFontList := TFontList.Create;
+  fBorderList := TBorderList.Create;
+  fFillList := TFillList.Create;
+
+  xmlImport := TJvSimpleXML.Create(nil);
+  filename := TPath.Combine(basepath, 'styles.xml');
+  xmlImport.LoadFromFile(filename, TJclStringEncoding.seUTF8);
+  fontsNode := xmlImport.Root.Items.ItemNamed['fonts'];
+  if Assigned(fontsNode) then
+  begin
+    for i := 0 to fontsNode.Items.Count-1 do
+    begin
+      AddFont(fontsNode.Items[i]);
+    end;
+  end;
+  bordersNode := xmlImport.Root.Items.ItemNamed['borders'];
+  if Assigned(bordersNode) then
+  begin
+    for i := 0 to bordersNode.Items.Count-1 do
+    begin
+      AddBorder(bordersNode.Items[i]);
+    end;
+  end;
+  fillsNode := xmlImport.Root.Items.ItemNamed['fills'];
+  if Assigned(bordersNode) then
+  begin
+    for i := 0 to fillsNode.Items.Count-1 do
+    begin
+      AddFill(fillsNode.Items[i]);
+    end;
+  end;
+
+  // ToDo: Formate zusammensetzen
+
+  fFillList.Free;
+  fBorderList.Free;
+  fFontList.Free;
+end;
+
 procedure TXlsxStylesFile.SaveToXml(basepath: String);
 var
   filename: string;
@@ -55,7 +219,6 @@ var
   styleSheetNode: TJvSimpleXMLElem;
   fontsNode: TJvSimpleXMLElem;
   fillsNode: TJvSimpleXMLElem;
-//  fillNode: TJvSimpleXMLElem;
   bordersNode: TJvSimpleXMLElem;
   cellStyleXfsNodes: TJvSimpleXMLElem;
   XfNode: TJvSimpleXMLElem;
@@ -84,13 +247,6 @@ begin
     format.SaveToFontNode(fontsNode);
     format.SaveToFillsNode(fillsNode);
   end;
-
-  //Fills
-//  fillsNode := styleSheetNode.Items.Add('fills');
-//  fillsNode.Properties.Add('count', FInternalFormatList.Count);
-//  FInternalFormatList.
-//  fillNode := fillsNode.Items.Add('fill');
-//  fillNode.Items.Add('patternFill').Properties.Add('patternType', 'none');
 
 //  Borders
   bordersNode := styleSheetNode.Items.Add('borders');

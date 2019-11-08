@@ -107,8 +107,10 @@ var
   row: Integer;
   typeProperty: TJvSimpleXMLProp;
   formulaNode: TJvSimpleXMLElem;
+  aFormatId : Integer;
 begin
   filename := TPath.Combine(basepath, Format('sheet%d.xml', [FId]));
+  if not FileExists(filename) then exit;
 
   xmlImport := TJvSimpleXML.Create(nil);
   xmlImport.LoadFromFile(filename);
@@ -124,6 +126,10 @@ begin
       row := rowNode.Properties.ItemNamed['r'].IntValue;
       typeProperty := cellNode.Properties.ItemNamed['t'];
       formulaNode := cellNode.Items.ItemNamed['f'];
+      if assigned(cellNode.Properties.ItemNamed['s']) then
+      begin
+        aFormatId := cellNode.Properties.ItemNamed['s'].IntValue;
+      end;
       
       if (typeProperty <> nil) then
       begin
