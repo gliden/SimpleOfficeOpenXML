@@ -46,6 +46,7 @@ procedure TXlsxFile.LoadFromFile(filename: String);
 var
   basePath: string;
 begin
+  FWorkbook.Sheets.Clear;
   basePath := TPath.Combine(TPath.GetTempPath, TGuid.NewGuid.ToString);
   ForceDirectories(basePath);
   TZipFile.ExtractZipFile(filename, basePath);
