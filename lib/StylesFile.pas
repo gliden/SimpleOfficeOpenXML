@@ -14,6 +14,7 @@ type
     destructor Destroy;override;
 
     procedure BuildFormatList(workbook: TXlsxWorkbook);
+    procedure SetFormatList(workbook: TXlsxWorkbook);
     procedure SaveToXml(basepath: String);
     procedure LoadFromXML(basepath: String);
   end;
@@ -63,6 +64,11 @@ var
   fillsNode : TJvSimpleXMLElem;
   i         : integer;
   filename : String;
+  cellXfsNode: TJvSimpleXMLElem;
+  cellFormat: TXlsxCellFormat;
+  xfNode: TJvSimpleXMLElem;
+  fontId: Int64;
+  fillId: Int64;
 
   procedure AddFont(fontNode: TJvSimpleXMLElem);
   var
@@ -103,7 +109,7 @@ var
   begin
     fBorder := TXlsxBorder.Create;
     fBorderList.Add(fBorder);
-    // ist noch nocht richtig implementiert
+    { TODO : Load borders }
   end;
 
   procedure AddFill(fillNode : TJvSimpleXMLElem);
@@ -197,7 +203,7 @@ begin
     end;
   end;
   fillsNode := xmlImport.Root.Items.ItemNamed['fills'];
-  if Assigned(bordersNode) then
+  if Assigned(fillsNode) then
   begin
     for i := 0 to fillsNode.Items.Count-1 do
     begin
@@ -206,6 +212,20 @@ begin
   end;
 
   // ToDo: Formate zusammensetzen
+  cellXfsNode := xmlImport.Root.Items.ItemNamed['cellXfs'];
+  for i := 0 to cellXfsNode.Items.Count-1 do
+  begin
+    xfNode := cellXfsNode.Items[i];
+    fontId := xfNode.Properties.ItemNamed['fontId'].IntValue;
+    fillId := xfNode.Properties.ItemNamed['fillId'].IntValue;
+
+    cellFormat := TXlsxCellFormat.Create;
+    cellFormat.FormatId := i;
+    cellFormat.Font.Assign(fFontList[fontId]);
+    cellFormat.Fill.Assign(fFillList[fillId]);
+    FInternalFormatList.Add(cellFormat);
+  end;
+
 
   fFillList.Free;
   fBorderList.Free;
@@ -281,6 +301,17 @@ begin
 
   xmlFile.SaveToFile(filename, TJclStringEncoding.seUTF8);
   xmlFile.Free;
+end;
+
+procedure TXlsxStylesFile.SetFormatList(workbook: TXlsxWorkbook);
+var
+  worksheet: TXlsxSheet;
+begin
+  workbook.DefaultFormat.Assign(FInternalFormatList[0]);
+  for worksheet in workbook.Sheets do
+  begin
+    worksheet.SetFormatList(FInternalFormatList);
+  end;
 end;
 
 end.

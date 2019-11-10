@@ -50,8 +50,6 @@ type
     FPatternType: TXlsxPatternType;
     fFgColor: TColor;
     fBgColor: TColor;
-    fIndexedFgColor : integer;
-    fIndexedBgColor : Integer;
     fThemeFgColor : integer;
     fThemeBgColor : Integer;
     fTintFgColor : double;
@@ -113,6 +111,7 @@ type
   TXlsxDistinctFormatList = class(TList<TXlsxCellFormat>)
   public
     function AddIfNotExists(format: TXlsxCellFormat): Integer;
+    function getFormatById(id: Integer): TXlsxCellFormat;
   end;
 
   TFontList = class(TList<TXlsxCellFont>);
@@ -122,7 +121,7 @@ type
 implementation
 
 uses
-  ColorRecHelper, System.SysUtils;
+  ColorRecHelper, System.SysUtils, IndexedColors;
 
 const XlsxBorderStyleName: array[TXlsxBorderStyle] of String = ('none', 'mediumDashDotDot', 'hair', 'slantDashDot',
                                                                 'dotted', 'mediumDashDot', 'dashDotDot', 'mediumDashed',
@@ -272,6 +271,21 @@ begin
   end;
 end;
 
+function TXlsxDistinctFormatList.getFormatById(id: Integer): TXlsxCellFormat;
+var
+  cellFormat: TXlsxCellFormat;
+begin
+  Result := nil;
+  for cellFormat in Self do
+  begin
+    if cellFormat.FormatId = id then
+    begin
+      Result := cellFormat;
+      break;
+    end;
+  end;
+end;
+
 { TXlsxCellFont }
 
 procedure TXlsxCellFont.Assign(value: TXlsxCellFont);
@@ -400,10 +414,8 @@ end;
 constructor TXlsxCellFill.Create;
 begin
   FPatternType := xptNone;
-  fFgColor := clNone;
-  fBgColor := clNone;
-  fIndexedFgColor := -1;
-  fIndexedBgColor := -1;
+  fFgColor := 0;
+  fBgColor := 0;
   fThemeFgColor := 0;
   fThemeBgColor := 0;
   fTintFgColor  := 1;
@@ -418,13 +430,19 @@ begin
 end;
 
 procedure TXlsxCellFill.SetBgIndexedColor(idx: integer);
+var
+  colorRec: TColorRec;
 begin
-  fIndexedBgColor := idx;
+  colorRec.SetHTMLHexWithoutHashInput(TIndexedColor.Color[idx]);
+  bgColor := colorRec;
 end;
 
 procedure TXlsxCellFill.SetFgIndexedColor(idx: integer);
+var
+  colorRec: TColorRec;
 begin
-  fIndexedFgColor := idx;
+  colorRec.SetHTMLHexWithoutHashInput(TIndexedColor.Color[idx]);
+  fgColor := colorRec;
 end;
 
 procedure TXlsxCellFill.SetPatternTypeByName(PatternName: String);

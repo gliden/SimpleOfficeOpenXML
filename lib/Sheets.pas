@@ -15,15 +15,20 @@ type
     FSharedStrings: TXlsxSharedStrings;
     function GenerateReference: String;
     function getCell(col, row: Integer): TXlsxCell;
+    function getColCount: Integer;
+    function getRowCount: Integer;
   public
     constructor Create(defaultFormat: TXlsxCellFormat; sharedStrings: TXlsxSharedStrings);
     destructor Destroy;override;
     procedure BuildFormatList(list: TXlsxDistinctFormatList);
+    procedure SetFormatList(list: TXlsxDistinctFormatList);
 
     property Id: Integer read FId write FId;
     property Reference: String read GenerateReference;
     property Name: String read FName write FName;
     property Cell[col, row: Integer]: TXlsxCell read getCell;
+    property RowCount: Integer read getRowCount;
+    property ColCount: Integer read getColCount;
 
     procedure SaveToWorkbookXmlNode(node: TJvSimpleXMLElem);
     procedure LoadFromWorkbookXmlNode(node: TJvSimpleXMLElem);
@@ -88,6 +93,30 @@ begin
   end;
 end;
 
+function TXlsxSheet.getColCount: Integer;
+var
+  i: Integer;
+begin
+  Result := -1;
+  for i := 0 to FCells.Count-1 do
+  begin
+    Result := Max(FCells[i].Col, Result);
+  end;
+  Inc(Result);
+end;
+
+function TXlsxSheet.getRowCount: Integer;
+var
+  i: Integer;
+begin
+  Result := -1;
+  for i := 0 to FCells.Count-1 do
+  begin
+    Result := Max(FCells[i].Row, Result);
+  end;
+  Inc(Result);
+end;
+
 procedure TXlsxSheet.LoadFromWorkbookXmlNode(node: TJvSimpleXMLElem);
 begin
   FName := node.Properties.ItemNamed['name'].Value;
@@ -107,7 +136,6 @@ var
   row: Integer;
   typeProperty: TJvSimpleXMLProp;
   formulaNode: TJvSimpleXMLElem;
-  aFormatId : Integer;
 begin
   filename := TPath.Combine(basepath, Format('sheet%d.xml', [FId]));
   if not FileExists(filename) then exit;
@@ -128,9 +156,9 @@ begin
       formulaNode := cellNode.Items.ItemNamed['f'];
       if assigned(cellNode.Properties.ItemNamed['s']) then
       begin
-        aFormatId := cellNode.Properties.ItemNamed['s'].IntValue;
+        Cell[col, row].Format.FormatId := cellNode.Properties.ItemNamed['s'].IntValue;
       end;
-      
+
       if (typeProperty <> nil) then
       begin
         if SameText(typeProperty.Value, 'inlineStr') then
@@ -192,6 +220,18 @@ begin
 
   xmlExport.SaveToFile(filename, TJclStringEncoding.seUTF8);
   xmlExport.Free;
+end;
+
+procedure TXlsxSheet.SetFormatList(list: TXlsxDistinctFormatList);
+var
+  tmpCell: TXlsxCell;
+  tmpFormat: TXlsxCellFormat;
+begin
+  for tmpCell in FCells do
+  begin
+    tmpFormat := list.getFormatById(tmpCell.Format.FormatId);
+    tmpCell.Format.Assign(tmpFormat);
+  end;
 end;
 
 end.

@@ -111,7 +111,6 @@ begin
 
   fStyles := TXlsxStylesFile.Create;
   fStyles.LoadFromXML(basepath);
-  fStyles.Free;
 
   xmlImport := TJvSimpleXML.Create(nil);
   xmlImport.LoadFromFile(filename, TJclStringEncoding.seUTF8);
@@ -119,14 +118,18 @@ begin
   for i := 0 to sheetsNode.Items.Count-1 do
   begin
     sheetNode := sheetsNode.Items[i];
+    { TODO : Load worksheet references from the workbook.xml.rels }
     if SameText(sheetNode.Name, 'sheet') then
     begin
       sheet := TXlsxSheet.Create(FDefaultFormat, FSharedStrings);
       sheet.LoadFromWorkbookXmlNode(sheetNode);
+      sheet.Id := i+1; //Just a little workaround
       sheet.LoadFromXml(TPath.Combine(basepath, 'worksheets'));
       FSheets.Add(sheet);
     end;
   end;
+  fStyles.SetFormatList(Self);
+  fStyles.Free;
 
   xmlImport.Free;
 end;
